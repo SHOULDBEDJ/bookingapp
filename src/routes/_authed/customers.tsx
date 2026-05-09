@@ -150,8 +150,9 @@ function Page() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {rows.map((r) => (
             <Card key={r.id} className="p-4 bg-gradient-card shadow-soft hover:shadow-brand transition-shadow border-border">
-              <p className="font-semibold">{r.phone || "—"}</p>
-              <p className="text-xs mt-1">{r.bookings?.length || 0} booking(s)</p>
+              <p className="font-bold text-lg truncate">{r.name || r.phone || "—"}</p>
+              {r.name && r.name !== r.phone && <p className="text-xs text-muted-foreground">{r.phone}</p>}
+              <p className="text-xs mt-1 font-medium text-primary/80">{r.bookings?.length || 0} booking(s)</p>
               <div className="flex gap-1 mt-3 pt-3 border-t">
                 <Button size="sm" variant="ghost" onClick={() => setHistoryCustomer(r)} className="text-primary font-semibold gap-1 hover:bg-primary/5">
                   <Eye className="w-4 h-4" />
