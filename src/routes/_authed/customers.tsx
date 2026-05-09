@@ -5,29 +5,61 @@ import { PageHeader } from "@/components/app/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Eye, Pencil, Trash2 } from "lucide-react";
+import { Eye, Pencil, Trash2, Calendar as CalendarIcon, X } from "lucide-react";
 import { BookingDetail } from "@/components/app/BookingDetail";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DateRange } from "react-day-picker";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authed/customers")({ component: Page });
 
 function Page() {
   const [q, setQ] = useState("");
+  const [from, setFrom] = useState<Date | undefined>();
+  const [to, setTo] = useState<Date | undefined>();
   const [rows, setRows] = useState<any[]>([]);
   const [detail, setDetail] = useState<any>(null);
   const [edit, setEdit] = useState<any>(null);
   const [del, setDel] = useState<any>(null);
 
   const load = async () => {
-    const { data } = await supabase.from("customers").select("*, bookings(id, booking_date, notes, customers(name, phone))").order("created_at", { ascending: false });
+    let query = supabase
+      .from("customers")
+      .select("*, bookings(id, booking_date, notes, customers(name, phone))")
+      .order("created_at", { ascending: false });
+
+    if (from || to) {
+      // Filter customers by booking date range
+      // Using !inner to filter parents based on child existence
+      let subQuery = "*, bookings!inner(id, booking_date, notes, customers(name, phone))";
+      query = supabase.from("customers").select(subQuery);
+
+      if (from) {
+        const d = new Date(from);
+        d.setHours(0, 0, 0, 0);
+        query = query.gte("bookings.booking_date", d.toISOString());
+      }
+      if (to) {
+        const d = new Date(to);
+        d.setHours(23, 59, 59, 999);
+        query = query.lte("bookings.booking_date", d.toISOString());
+      }
+      
+      query = query.order("created_at", { ascending: false });
+    }
+
+    const { data } = await query;
     let arr = data || [];
     if (q.trim()) arr = arr.filter((c: any) => (c.phone || "").includes(q.trim()));
     setRows(arr);
   };
-  useEffect(() => { load(); }, [q]);
+  useEffect(() => { load(); }, [q, from, to]);
 
   const saveEdit = async () => {
     await supabase.from("customers").update({ phone: edit.phone, name: edit.phone }).eq("id", edit.id);
@@ -41,7 +73,76 @@ function Page() {
   return (
     <div>
       <PageHeader title="Customer History" subtitle="All customers by phone" />
-      <div className="mb-4"><Input type="tel" inputMode="tel" placeholder="Search by phone number" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-sm" /></div>
+      
+      <div className="mb-4 flex flex-col sm:flex-row gap-3">
+        <Input 
+          type="tel" 
+          inputMode="tel" 
+          placeholder="Search by phone number" 
+          value={q} 
+          onChange={(e) => setQ(e.target.value)} 
+          className="max-w-sm" 
+        />
+
+        <div className="flex flex-wrap gap-2 items-center">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "w-[160px] justify-start text-left font-normal bg-card shadow-soft border-border",
+                  !from && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {from ? format(from, "LLL dd, y") : <span>From Date</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={from}
+                onSelect={setFrom}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "w-[160px] justify-start text-left font-normal bg-card shadow-soft border-border",
+                  !to && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {to ? format(to, "LLL dd, y") : <span>To Date</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={to}
+                onSelect={setTo}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+          
+          {(q || from || to) && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => { setQ(""); setFrom(undefined); setTo(undefined); }}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {rows.map((r) => (
