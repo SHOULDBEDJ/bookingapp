@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { UserCheck, UserPlus } from "lucide-react";
 
 export function BookingForm({ open, onClose, onSaved, editing }: { open: boolean; onClose: () => void; onSaved: () => void; editing?: any }) {
-  const [busy, setBusy] = useState(false);
+
   const [bookingDate, setBookingDate] = useState(toLocalInput());
   const [phone, setPhone] = useState("");
   const [matched, setMatched] = useState<{ id: string; name: string; phone: string } | null>(null);
@@ -58,8 +58,6 @@ export function BookingForm({ open, onClose, onSaved, editing }: { open: boolean
 
   const save = async () => {
     if (!phone.trim()) { toast.error("Phone number required"); return; }
-    setBusy(true);
-    const start = Date.now();
     try {
       let customerId = matched?.id;
       if (!customerId) {
@@ -88,13 +86,11 @@ export function BookingForm({ open, onClose, onSaved, editing }: { open: boolean
         await supabase.from("audio_notes").insert({ parent_type: "booking", parent_id: bookingId, storage_path: storagePath });
       }
 
-      const elapsed = Date.now() - start;
-      if (elapsed < 2000) await new Promise((r) => setTimeout(r, 2000 - elapsed));
       toast.success(editing ? "Booking updated" : "Booking saved");
       onSaved(); onClose();
     } catch (e: any) {
       toast.error(e.message || "Failed to save");
-    } finally { setBusy(false); }
+    }
   };
 
   if (!open) return null;
@@ -160,7 +156,7 @@ export function BookingForm({ open, onClose, onSaved, editing }: { open: boolean
           <Button onClick={save} className="bg-gradient-primary text-primary-foreground shadow-brand">Save Booking</Button>
         </div>
       </div>
-      <SaveOverlay open={busy} label="Saving Booking..." />
+
     </div>
   );
 }
