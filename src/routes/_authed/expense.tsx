@@ -61,12 +61,25 @@ function ExpensePage() {
     try {
       const payload = { expense_date: new Date(date).toISOString(), expense_type_id: typeId || null, booking_id: bookingId || null, amount: Number(amount) || 0 };
       let id = editing?.id;
-      if (id) await supabase.from("expenses").update(payload).eq("id", id);
-      else { const { data, error } = await supabase.from("expenses").insert(payload).select("id").single(); if (error) throw error; id = data.id; }
-      for (const f of files) { const path = await uploadFile("expense-photos", f, f.name); await supabase.from("expense_photos").insert({ expense_id: id, storage_path: path }); }
+      if (id) {
+        const { error } = await supabase.from("expenses").update(payload).eq("id", id);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase.from("expenses").insert(payload).select("id").single();
+        if (error) throw error;
+        id = data.id;
+      }
+      for (const f of files) {
+        const path = await uploadFile("expense-photos", f, f.name);
+        const { error } = await supabase.from("expense_photos").insert({ expense_id: id, storage_path: path });
+        if (error) throw error;
+      }
       for (const a of audios) {
         let p = ""; if (a.blob) p = await uploadFile("audio", a.blob, `note-${a.id}.webm`);
-        if (p || a.transcript) await supabase.from("audio_notes").insert({ parent_type: "expense", parent_id: id, storage_path: p, transcript: a.transcript });
+        if (p || a.transcript) {
+          const { error } = await supabase.from("audio_notes").insert({ parent_type: "expense", parent_id: id, storage_path: p, transcript: a.transcript });
+          if (error) throw error;
+        }
       }
       toast.success(editing ? "Updated" : "Saved"); setFormOpen(false); setEditing(null); load();
     } catch (err: any) { toast.error(err.message); }
@@ -170,7 +183,8 @@ function ExpenseTypesManager({ open, onClose }: { open: boolean; onClose: () => 
     if (!name.trim()) return;
 
     try {
-      await supabase.from("expense_types").insert({ name: name.trim() });
+      const { error } = await supabase.from("expense_types").insert({ name: name.trim() });
+      if (error) throw error;
       setName(""); load(); toast.success("Added");
     } catch (err: any) { toast.error(err.message); }
   };

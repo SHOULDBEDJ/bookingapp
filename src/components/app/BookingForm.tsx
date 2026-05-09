@@ -69,7 +69,8 @@ export function BookingForm({ open, onClose, onSaved, editing }: { open: boolean
 
       let bookingId = editing?.id;
       if (bookingId) {
-        await supabase.from("bookings").update({ customer_id: customerId, booking_date: new Date(bookingDate).toISOString() }).eq("id", bookingId);
+        const { error } = await supabase.from("bookings").update({ customer_id: customerId, booking_date: new Date(bookingDate).toISOString() }).eq("id", bookingId);
+        if (error) throw error;
       } else {
         const { data, error } = await supabase.from("bookings").insert({ customer_id: customerId, booking_date: new Date(bookingDate).toISOString() }).select("id").single();
         if (error) throw error;
@@ -78,12 +79,14 @@ export function BookingForm({ open, onClose, onSaved, editing }: { open: boolean
 
       for (const f of files) {
         const path = await uploadFile("bills", f, f.name);
-        await supabase.from("booking_photos").insert({ booking_id: bookingId, storage_path: path });
+        const { error } = await supabase.from("booking_photos").insert({ booking_id: bookingId, storage_path: path });
+        if (error) throw error;
       }
       for (const a of audios) {
         if (!a.blob) continue;
         const storagePath = await uploadFile("audio", a.blob, `note-${a.id}.webm`);
-        await supabase.from("audio_notes").insert({ parent_type: "booking", parent_id: bookingId, storage_path: storagePath });
+        const { error } = await supabase.from("audio_notes").insert({ parent_type: "booking", parent_id: bookingId, storage_path: storagePath });
+        if (error) throw error;
       }
 
       toast.success(editing ? "Booking updated" : "Booking saved");
