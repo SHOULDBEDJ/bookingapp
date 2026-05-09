@@ -99,7 +99,7 @@ export function BookingForm({ open, onClose, onSaved, editing }: { open: boolean
 
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-40 bg-foreground/30 backdrop-blur-sm flex items-end sm:items-center justify-center p-2 sm:p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-40 bg-foreground/30 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
       <div className="w-full max-w-2xl bg-card rounded-2xl shadow-elevated border border-border my-4">
         <div className="bg-gradient-hero text-primary-foreground p-5 rounded-t-2xl">
           <h2 className="text-xl font-bold">{editing ? "Edit Booking" : "New Booking"}</h2>
