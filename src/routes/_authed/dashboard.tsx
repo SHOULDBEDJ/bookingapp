@@ -5,25 +5,31 @@ import { PageHeader } from "@/components/app/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { CalendarDays, Users, Wallet, Images } from "lucide-react";
 import { fmtDateTime } from "@/lib/format";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { BookingForm } from "@/components/app/BookingForm";
 
 export const Route = createFileRoute("/_authed/dashboard")({ component: Dashboard });
 
 function Dashboard() {
   const [counts, setCounts] = useState({ bookings: 0, customers: 0, expenses: 0, albums: 0 });
   const [recent, setRecent] = useState<any[]>([]);
+  const [formOpen, setFormOpen] = useState(false);
+
+  const load = async () => {
+    const [b, c, e, a, list] = await Promise.all([
+      supabase.from("bookings").select("id", { count: "exact", head: true }),
+      supabase.from("customers").select("id", { count: "exact", head: true }),
+      supabase.from("expenses").select("id", { count: "exact", head: true }),
+      supabase.from("albums").select("id", { count: "exact", head: true }),
+      supabase.from("bookings").select("id, booking_date, customers(name, phone)").order("booking_date", { ascending: false }).limit(10),
+    ]);
+    setCounts({ bookings: b.count || 0, customers: c.count || 0, expenses: e.count || 0, albums: a.count || 0 });
+    setRecent(list.data || []);
+  };
 
   useEffect(() => {
-    (async () => {
-      const [b, c, e, a, list] = await Promise.all([
-        supabase.from("bookings").select("id", { count: "exact", head: true }),
-        supabase.from("customers").select("id", { count: "exact", head: true }),
-        supabase.from("expenses").select("id", { count: "exact", head: true }),
-        supabase.from("albums").select("id", { count: "exact", head: true }),
-        supabase.from("bookings").select("id, booking_date, customers(name, phone)").order("booking_date", { ascending: false }).limit(10),
-      ]);
-      setCounts({ bookings: b.count || 0, customers: c.count || 0, expenses: e.count || 0, albums: a.count || 0 });
-      setRecent(list.data || []);
-    })();
+    load();
   }, []);
 
   const kpis = [
@@ -35,7 +41,16 @@ function Dashboard() {
 
   return (
     <div>
-      <PageHeader title="Dashboard" subtitle="Overview at a glance" />
+      <PageHeader 
+        title="Dashboard" 
+        subtitle="Overview at a glance" 
+        actions={
+          <Button onClick={() => setFormOpen(true)} className="bg-card text-foreground hover:bg-card/90 shadow-soft">
+            <Plus className="w-4 h-4 mr-1" />
+            New Booking
+          </Button>
+        }
+      />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {kpis.map((k) => (
           <Card key={k.label} className="bg-gradient-card border-border shadow-soft hover:shadow-brand transition-shadow">
@@ -50,6 +65,38 @@ function Dashboard() {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      <div className="mb-6">
+        <h3 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider px-1">Quick Actions</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Button 
+            onClick={() => setFormOpen(true)} 
+            className="h-auto py-6 bg-gradient-primary hover:opacity-90 text-primary-foreground shadow-brand flex flex-col items-center gap-2 rounded-2xl border-none transition-all hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center mb-1">
+              <Plus className="w-7 h-7" />
+            </div>
+            <div className="text-center">
+              <p className="font-bold text-lg">New Booking</p>
+              <p className="text-xs opacity-80 font-normal">Create a new customer booking</p>
+            </div>
+          </Button>
+          
+          <Button 
+            variant="outline"
+            className="h-auto py-6 bg-card border-border hover:bg-muted/50 shadow-soft flex flex-col items-center gap-2 rounded-2xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+            onClick={() => { window.location.href = '/expense' }}
+          >
+            <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-1">
+              <Wallet className="w-7 h-7" />
+            </div>
+            <div className="text-center">
+              <p className="font-bold text-lg text-foreground">Add Expense</p>
+              <p className="text-xs text-muted-foreground font-normal">Record a business expense</p>
+            </div>
+          </Button>
+        </div>
       </div>
 
       <Card className="shadow-soft border-border">
@@ -69,6 +116,8 @@ function Dashboard() {
           </div>
         </CardContent>
       </Card>
+
+      <BookingForm open={formOpen} onClose={() => setFormOpen(false)} onSaved={load} />
     </div>
   );
 }

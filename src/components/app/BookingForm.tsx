@@ -9,12 +9,13 @@ import { PhotoUploader } from "./PhotoUploader";
 import { AudioNoteRecorder, type DraftAudio } from "./AudioNoteRecorder";
 import { SaveOverlay } from "./SaveOverlay";
 import { toast } from "sonner";
-import { UserCheck, UserPlus } from "lucide-react";
+import { UserCheck, UserPlus, Contact, History } from "lucide-react";
 
 export function BookingForm({ open, onClose, onSaved, editing }: { open: boolean; onClose: () => void; onSaved: () => void; editing?: any }) {
 
   const [bookingDate, setBookingDate] = useState(toLocalInput());
   const [phone, setPhone] = useState("");
+  const [customerName, setCustomerName] = useState("");
   const [matched, setMatched] = useState<{ id: string; name: string; phone: string } | null>(null);
   const [lookupState, setLookupState] = useState<"idle" | "checking" | "found" | "new">("idle");
   const [files, setFiles] = useState<File[]>([]);
@@ -33,7 +34,7 @@ export function BookingForm({ open, onClose, onSaved, editing }: { open: boolean
       }
     } else {
       setBookingDate(toLocalInput());
-      setPhone(""); setMatched(null); setLookupState("idle"); setFiles([]); setAudios([]);
+      setPhone(""); setCustomerName(""); setMatched(null); setLookupState("idle"); setFiles([]); setAudios([]);
     }
   }, [editing, open]);
 
@@ -48,6 +49,7 @@ export function BookingForm({ open, onClose, onSaved, editing }: { open: boolean
       const { data } = await supabase.from("customers").select("id,name,phone").eq("phone", p).maybeSingle();
       if (data) { 
         setMatched({ id: data.id, name: data.name, phone: data.phone || p }); 
+        setCustomerName(data.name);
         setLookupState("found"); 
         const { count } = await supabase.from("bookings").select("*", { count: "exact", head: true }).eq("customer_id", data.id);
         setBookingCount(count || 0);
@@ -56,13 +58,40 @@ export function BookingForm({ open, onClose, onSaved, editing }: { open: boolean
     }, 400);
   }, [phone, editing]);
 
+  const pickDeviceContact = async () => {
+    try {
+      // @ts-ignore
+      if (!navigator.contacts || !navigator.contacts.select) {
+        toast.error("Contact selection is only available on supported mobile browsers (Chrome/Safari on mobile)");
+        return;
+      }
+      // @ts-ignore
+      const props = ['name', 'tel'];
+      // @ts-ignore
+      const contacts = await navigator.contacts.select(props, { multiple: false });
+      if (contacts && contacts.length > 0) {
+        const contact = contacts[0];
+        const rawPhone = contact.tel?.[0] || "";
+        // Clean phone number (remove spaces, dashes, etc.)
+        const cleanPhone = rawPhone.replace(/\D/g, '').slice(-10); // Keep last 10 digits for consistency
+        setPhone(cleanPhone);
+        if (contact.name?.[0]) {
+          setCustomerName(contact.name[0]);
+        }
+      }
+    } catch (e) {
+      console.error("Contact picker error", e);
+      toast.error("Could not access contacts");
+    }
+  };
+
   const save = async () => {
     if (!phone.trim()) { toast.error("Phone number required"); return; }
     try {
       let customerId = matched?.id;
       if (!customerId) {
-        // create with phone-only; name placeholder is the phone itself
-        const { data, error } = await supabase.from("customers").insert({ name: phone.trim(), phone: phone.trim() }).select("id").single();
+        const nameToSave = customerName.trim() || phone.trim();
+        const { data, error } = await supabase.from("customers").insert({ name: nameToSave, phone: phone.trim() }).select("id").single();
         if (error) throw error;
         customerId = data.id;
       }
@@ -109,27 +138,59 @@ export function BookingForm({ open, onClose, onSaved, editing }: { open: boolean
             <Input type="datetime-local" value={bookingDate} onChange={(e) => setBookingDate(e.target.value)} className="mt-1" />
           </div>
 
-          <div className="relative">
-            <Label>Phone Number</Label>
-            <div className="flex items-center gap-2 mt-1">
+          <div className="space-y-4">
+            <div className="relative">
+              <div className="flex items-center justify-between">
+                <Label>Phone Number</Label>
+                {!editing && (
+                  <Button 
+                    type="button"
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={pickDeviceContact}
+                    className="h-8 px-3 text-white bg-blue-600 hover:bg-blue-700 gap-2 font-bold rounded-full shadow-lg transition-all active:scale-95"
+                  >
+                    <Contact className="w-4 h-4" />
+                    <span>Select Contact</span>
+                  </Button>
+                )}
+              </div>
+              <div className="mt-2">
+                <Input
+                  type="tel"
+                  inputMode="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="Enter phone number"
+                  className="w-full text-lg font-medium h-12"
+                  disabled={!!editing}
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label>Customer Name</Label>
               <Input
-                type="tel"
-                inputMode="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Enter customer phone"
-                className="flex-1"
-                disabled={!!editing}
+                type="text"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                placeholder="Auto-filled from contacts or database"
+                className="mt-1"
+                disabled={lookupState === "found"}
               />
-              {lookupState === "found" && bookingCount > 0 && (
-                <div 
-                  className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-[10px] font-bold shrink-0 shadow-sm animate-in zoom-in" 
-                  title={`${bookingCount} previous bookings`}
-                >
-                  {bookingCount}
-                </div>
+              {lookupState === "found" && (
+                <p className="text-[10px] text-muted-foreground mt-1 px-1">Found in database (Name locked)</p>
               )}
             </div>
+
+            {lookupState === "found" && bookingCount > 0 && (
+              <div className="px-1">
+                <div className="flex items-center gap-2 rounded-lg bg-blue-50 border border-blue-200 p-2 text-sm text-blue-700">
+                  <UserCheck className="w-4 h-4" />
+                  <span>Existing customer: <strong>{matched?.name}</strong> ({bookingCount} bookings)</span>
+                </div>
+              </div>
+            )}
             {lookupState === "checking" && (
               <p className="text-xs text-muted-foreground mt-1">Checking…</p>
             )}
