@@ -4,18 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/app/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PhotoUploader } from "@/components/app/PhotoUploader";
-import { AudioNoteRecorder, type DraftAudio } from "@/components/app/AudioNoteRecorder";
-import { SaveOverlay } from "@/components/app/SaveOverlay";
 import { Plus, Eye, Pencil, Trash2, Settings as SettingsIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { uploadFile, publicUrl } from "@/lib/storage";
-import { toLocalInput, fmtDateTime } from "@/lib/format";
+import { publicUrl } from "@/lib/storage";
+import { fmtDateTime } from "@/lib/format";
 import { toast } from "sonner";
+import { ExpenseForm } from "@/components/app/ExpenseForm";
+import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/_authed/expense")({ component: ExpensePage });
 
@@ -29,14 +25,6 @@ function ExpensePage() {
   const [del, setDel] = useState<any>(null);
   const [detail, setDetail] = useState<any>(null);
 
-
-  const [date, setDate] = useState(toLocalInput());
-  const [typeId, setTypeId] = useState<string>("");
-  const [bookingId, setBookingId] = useState<string>("");
-  const [amount, setAmount] = useState("");
-  const [files, setFiles] = useState<File[]>([]);
-  const [audios, setAudios] = useState<DraftAudio[]>([]);
-
   const load = async () => {
     const [e, t, b] = await Promise.all([
       supabase.from("expenses").select("*, expense_types(name), bookings(id, booking_date, customers(name))").order("expense_date", { ascending: false }),
@@ -46,44 +34,6 @@ function ExpensePage() {
     setRows(e.data || []); setTypes(t.data || []); setBookings(b.data || []);
   };
   useEffect(() => { load(); }, []);
-
-  useEffect(() => {
-    if (editing) {
-      setDate(toLocalInput(editing.expense_date)); setTypeId(editing.expense_type_id || "");
-      setBookingId(editing.booking_id || ""); setAmount(String(editing.amount));
-    } else if (formOpen) {
-      setDate(toLocalInput()); setTypeId(""); setBookingId(""); setAmount(""); setFiles([]); setAudios([]);
-    }
-  }, [editing, formOpen]);
-
-  const save = async () => {
-
-    try {
-      const payload = { expense_date: new Date(date).toISOString(), expense_type_id: typeId || null, booking_id: bookingId || null, amount: Number(amount) || 0 };
-      let id = editing?.id;
-      if (id) {
-        const { error } = await supabase.from("expenses").update(payload).eq("id", id);
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabase.from("expenses").insert(payload).select("id").single();
-        if (error) throw error;
-        id = data.id;
-      }
-      for (const f of files) {
-        const path = await uploadFile("expense-photos", f, f.name);
-        const { error } = await supabase.from("expense_photos").insert({ expense_id: id, storage_path: path });
-        if (error) throw error;
-      }
-      for (const a of audios) {
-        let p = ""; if (a.blob) p = await uploadFile("audio", a.blob, `note-${a.id}.webm`);
-        if (p || a.transcript) {
-          const { error } = await supabase.from("audio_notes").insert({ parent_type: "expense", parent_id: id, storage_path: p, transcript: a.transcript });
-          if (error) throw error;
-        }
-      }
-      toast.success(editing ? "Updated" : "Saved"); setFormOpen(false); setEditing(null); load();
-    } catch (err: any) { toast.error(err.message); }
-  };
 
   const doDelete = async () => { await supabase.from("expenses").delete().eq("id", del.id); toast.success("Deleted"); setDel(null); load(); };
 
@@ -111,24 +61,12 @@ function ExpensePage() {
       </div>
 
       {/* Form dialog */}
-      <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editing ? "Edit" : "New"} Expense</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div><Label>Date & Time</Label><Input type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} /></div>
-            <div><Label>Type</Label>
-              <Select value={typeId} onValueChange={setTypeId}><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger><SelectContent>{types.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent></Select>
-            </div>
-            <div><Label>Linked Booking (optional)</Label>
-              <Select value={bookingId} onValueChange={setBookingId}><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger><SelectContent>{bookings.map((b) => <SelectItem key={b.id} value={b.id}>{b.customers?.name} — {fmtDateTime(b.booking_date)}</SelectItem>)}</SelectContent></Select>
-            </div>
-            <div><Label>Amount (₹)</Label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
-            <div><Label>Photos</Label><PhotoUploader files={files} setFiles={setFiles} /></div>
-            <AudioNoteRecorder items={audios} setItems={setAudios} />
-            <Button onClick={save} className="w-full bg-gradient-primary text-primary-foreground">Save</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ExpenseForm 
+        open={formOpen} 
+        onClose={() => { setFormOpen(false); setEditing(null); }} 
+        onSaved={load} 
+        editing={editing} 
+      />
 
       {/* Types manager */}
       <ExpenseTypesManager open={typesOpen} onClose={() => { setTypesOpen(false); load(); }} />

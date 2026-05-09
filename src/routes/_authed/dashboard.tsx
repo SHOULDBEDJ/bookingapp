@@ -8,13 +8,15 @@ import { fmtDateTime } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { BookingForm } from "@/components/app/BookingForm";
+import { ExpenseForm } from "@/components/app/ExpenseForm";
 
 export const Route = createFileRoute("/_authed/dashboard")({ component: Dashboard });
 
 function Dashboard() {
   const [counts, setCounts] = useState({ bookings: 0, customers: 0, expenses: 0, albums: 0 });
   const [recent, setRecent] = useState<any[]>([]);
-  const [formOpen, setFormOpen] = useState(false);
+  const [bookingFormOpen, setBookingFormOpen] = useState(false);
+  const [expenseFormOpen, setExpenseFormOpen] = useState(false);
 
   const load = async () => {
     const [b, c, e, a, list] = await Promise.all([
@@ -45,7 +47,7 @@ function Dashboard() {
         title="Dashboard" 
         subtitle="Overview at a glance" 
         actions={
-          <Button onClick={() => setFormOpen(true)} className="bg-card text-foreground hover:bg-card/90 shadow-soft">
+          <Button onClick={() => setBookingFormOpen(true)} className="bg-card text-foreground hover:bg-card/90 shadow-soft">
             <Plus className="w-4 h-4 mr-1" />
             New Booking
           </Button>
@@ -71,7 +73,7 @@ function Dashboard() {
         <h3 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider px-1">Quick Actions</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Button 
-            onClick={() => setFormOpen(true)} 
+            onClick={() => setBookingFormOpen(true)} 
             className="h-auto py-6 bg-gradient-primary hover:opacity-90 text-primary-foreground shadow-brand flex flex-col items-center gap-2 rounded-2xl border-none transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
             <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center mb-1">
@@ -86,7 +88,7 @@ function Dashboard() {
           <Button 
             variant="outline"
             className="h-auto py-6 bg-card border-border hover:bg-muted/50 shadow-soft flex flex-col items-center gap-2 rounded-2xl transition-all hover:scale-[1.02] active:scale-[0.98]"
-            onClick={() => { window.location.href = '/expense' }}
+            onClick={() => setExpenseFormOpen(true)}
           >
             <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-1">
               <Wallet className="w-7 h-7" />
@@ -117,7 +119,9 @@ function Dashboard() {
         </CardContent>
       </Card>
 
-      <BookingForm open={formOpen} onClose={() => setFormOpen(false)} onSaved={load} />
+      <BookingForm open={bookingFormOpen} onClose={() => setBookingFormOpen(false)} onSaved={load} />
+      <ExpenseForm open={expenseFormOpen} onClose={() => setExpenseFormOpen(false)} onSaved={load} />
     </div>
   );
 }
+
