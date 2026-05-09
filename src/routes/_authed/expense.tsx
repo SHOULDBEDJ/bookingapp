@@ -28,7 +28,7 @@ function ExpensePage() {
   const [editing, setEditing] = useState<any>(null);
   const [del, setDel] = useState<any>(null);
   const [detail, setDetail] = useState<any>(null);
-  const [busy, setBusy] = useState(false);
+
 
   const [date, setDate] = useState(toLocalInput());
   const [typeId, setTypeId] = useState<string>("");
@@ -57,7 +57,7 @@ function ExpensePage() {
   }, [editing, formOpen]);
 
   const save = async () => {
-    setBusy(true); const start = Date.now();
+
     try {
       const payload = { expense_date: new Date(date).toISOString(), expense_type_id: typeId || null, booking_id: bookingId || null, amount: Number(amount) || 0 };
       let id = editing?.id;
@@ -68,9 +68,8 @@ function ExpensePage() {
         let p = ""; if (a.blob) p = await uploadFile("audio", a.blob, `note-${a.id}.webm`);
         if (p || a.transcript) await supabase.from("audio_notes").insert({ parent_type: "expense", parent_id: id, storage_path: p, transcript: a.transcript });
       }
-      const e = Date.now() - start; if (e < 2000) await new Promise((r) => setTimeout(r, 2000 - e));
       toast.success(editing ? "Updated" : "Saved"); setFormOpen(false); setEditing(null); load();
-    } catch (err: any) { toast.error(err.message); } finally { setBusy(false); }
+    } catch (err: any) { toast.error(err.message); }
   };
 
   const doDelete = async () => { await supabase.from("expenses").delete().eq("id", del.id); toast.success("Deleted"); setDel(null); load(); };
@@ -134,7 +133,7 @@ function ExpensePage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <SaveOverlay open={busy} label="Saving Expense..." />
+
     </div>
   );
 }
@@ -164,17 +163,16 @@ function ExpenseDetail({ expense }: { expense: any }) {
 function ExpenseTypesManager({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [items, setItems] = useState<any[]>([]);
   const [name, setName] = useState("");
-  const [busy, setBusy] = useState(false);
+
   const load = async () => { const { data } = await supabase.from("expense_types").select("*").order("name"); setItems(data || []); };
   useEffect(() => { if (open) load(); }, [open]);
   const add = async () => {
     if (!name.trim()) return;
-    setBusy(true); const start = Date.now();
+
     try {
       await supabase.from("expense_types").insert({ name: name.trim() });
-      const e = Date.now() - start; if (e < 2000) await new Promise((r) => setTimeout(r, 2000 - e));
       setName(""); load(); toast.success("Added");
-    } finally { setBusy(false); }
+    } catch (err: any) { toast.error(err.message); }
   };
   const update = async (id: string, n: string) => { await supabase.from("expense_types").update({ name: n }).eq("id", id); load(); };
   const del = async (id: string) => { await supabase.from("expense_types").delete().eq("id", id); load(); };
@@ -186,7 +184,7 @@ function ExpenseTypesManager({ open, onClose }: { open: boolean; onClose: () => 
         <div className="space-y-2 max-h-80 overflow-y-auto">{items.map((t) => (
           <div key={t.id} className="flex gap-2 items-center"><Input defaultValue={t.name} onBlur={(e) => e.target.value !== t.name && update(t.id, e.target.value)} /><Button size="sm" variant="ghost" onClick={() => del(t.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button></div>
         ))}</div>
-        <SaveOverlay open={busy} label="Saving Type..." />
+
       </DialogContent>
     </Dialog>
   );
