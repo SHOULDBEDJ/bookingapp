@@ -16,6 +16,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { DateRange } from "react-day-picker";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { fmtDateTime } from "@/lib/format";
+import { Clock } from "lucide-react";
 
 export const Route = createFileRoute("/_authed/customers")({ component: Page });
 
@@ -27,6 +29,7 @@ function Page() {
   const [detail, setDetail] = useState<any>(null);
   const [edit, setEdit] = useState<any>(null);
   const [del, setDel] = useState<any>(null);
+  const [historyCustomer, setHistoryCustomer] = useState<any>(null);
 
   const load = async () => {
     let query = supabase
@@ -150,7 +153,11 @@ function Page() {
               <p className="font-semibold">{r.phone || "—"}</p>
               <p className="text-xs mt-1">{r.bookings?.length || 0} booking(s)</p>
               <div className="flex gap-1 mt-3 pt-3 border-t">
-                <Button size="sm" variant="ghost" onClick={() => r.bookings?.[0] && setDetail({ ...r.bookings[0], customers: r })}><Eye className="w-4 h-4" /></Button>
+                <Button size="sm" variant="ghost" onClick={() => setHistoryCustomer(r)} className="text-primary font-semibold gap-1 hover:bg-primary/5">
+                  <Eye className="w-4 h-4" />
+                  View History
+                </Button>
+                <div className="flex-1" />
                 <Button size="sm" variant="ghost" onClick={() => setEdit(r)}><Pencil className="w-4 h-4" /></Button>
                 <Button size="sm" variant="ghost" onClick={() => setDel(r)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
               </div>
@@ -177,6 +184,61 @@ function Page() {
           <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={doDelete} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!historyCustomer} onOpenChange={(o) => !o && setHistoryCustomer(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col p-0">
+          <DialogHeader className="p-6 bg-gradient-hero text-primary-foreground">
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              Booking History: {historyCustomer?.name || historyCustomer?.phone}
+            </DialogTitle>
+            <p className="text-sm opacity-90">{historyCustomer?.bookings?.length || 0} total bookings recorded</p>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-muted/30">
+            {historyCustomer?.bookings?.map((b: any, idx: number) => (
+              <Card key={b.id} className="p-4 bg-card border-border shadow-soft hover:shadow-brand transition-all cursor-pointer group" onClick={() => setDetail({ ...b, customers: historyCustomer })}>
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
+                      #{historyCustomer.bookings.length - idx}
+                    </div>
+                    <div>
+                      <p className="font-bold text-lg">{fmtDateTime(b.booking_date)}</p>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <CalendarIcon className="w-3 h-3" />
+                        Date Recorded: {new Date(b.booking_date).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    View Details <Eye className="ml-1 w-3 h-3" />
+                  </Button>
+                </div>
+                {b.notes && (
+                  <div className="mt-3 p-3 rounded-lg bg-muted/50 border border-border text-sm italic text-muted-foreground">
+                    "{b.notes}"
+                  </div>
+                )}
+                <div className="mt-3 pt-3 border-t flex gap-2">
+                   <div className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded">
+                     {b.booking_date ? 'Completed' : 'Pending'}
+                   </div>
+                </div>
+              </Card>
+            ))}
+            {(!historyCustomer?.bookings || historyCustomer.bookings.length === 0) && (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No booking history found for this customer.</p>
+              </div>
+            )}
+          </div>
+          
+          <div className="p-4 border-t bg-card flex justify-end">
+            <Button variant="outline" onClick={() => setHistoryCustomer(null)}>Close History</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
