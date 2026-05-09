@@ -19,6 +19,7 @@ export function BookingForm({ open, onClose, onSaved, editing }: { open: boolean
   const [lookupState, setLookupState] = useState<"idle" | "checking" | "found" | "new">("idle");
   const [files, setFiles] = useState<File[]>([]);
   const [audios, setAudios] = useState<DraftAudio[]>([]);
+  const [bookingCount, setBookingCount] = useState(0);
   const debounceRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -28,6 +29,7 @@ export function BookingForm({ open, onClose, onSaved, editing }: { open: boolean
         setPhone(editing.customers.phone || "");
         setMatched({ id: editing.customer_id, name: editing.customers.name, phone: editing.customers.phone || "" });
         setLookupState("found");
+        supabase.from("bookings").select("*", { count: "exact", head: true }).eq("customer_id", editing.customer_id).then(({ count }) => setBookingCount(count || 0));
       }
     } else {
       setBookingDate(toLocalInput());
@@ -44,8 +46,13 @@ export function BookingForm({ open, onClose, onSaved, editing }: { open: boolean
     setLookupState("checking");
     debounceRef.current = window.setTimeout(async () => {
       const { data } = await supabase.from("customers").select("id,name,phone").eq("phone", p).maybeSingle();
-      if (data) { setMatched({ id: data.id, name: data.name, phone: data.phone || p }); setLookupState("found"); }
-      else { setMatched(null); setLookupState("new"); }
+      if (data) { 
+        setMatched({ id: data.id, name: data.name, phone: data.phone || p }); 
+        setLookupState("found"); 
+        const { count } = await supabase.from("bookings").select("*", { count: "exact", head: true }).eq("customer_id", data.id);
+        setBookingCount(count || 0);
+      }
+      else { setMatched(null); setLookupState("new"); setBookingCount(0); }
     }, 400);
   }, [phone, editing]);
 
@@ -103,17 +110,27 @@ export function BookingForm({ open, onClose, onSaved, editing }: { open: boolean
             <Input type="datetime-local" value={bookingDate} onChange={(e) => setBookingDate(e.target.value)} className="mt-1" />
           </div>
 
-          <div>
+          <div className="relative">
             <Label>Phone Number</Label>
-            <Input
-              type="tel"
-              inputMode="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="Enter customer phone"
-              className="mt-1"
-              disabled={!!editing}
-            />
+            <div className="flex items-center gap-2 mt-1">
+              <Input
+                type="tel"
+                inputMode="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Enter customer phone"
+                className="flex-1"
+                disabled={!!editing}
+              />
+              {lookupState === "found" && bookingCount > 0 && (
+                <div 
+                  className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-[10px] font-bold shrink-0 shadow-sm animate-in zoom-in" 
+                  title={`${bookingCount} previous bookings`}
+                >
+                  {bookingCount}
+                </div>
+              )}
+            </div>
             {lookupState === "checking" && (
               <p className="text-xs text-muted-foreground mt-1">Checking…</p>
             )}
