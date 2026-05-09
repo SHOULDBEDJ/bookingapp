@@ -81,6 +81,7 @@ function SettingsPage() {
         }
       }
       toast.success("Deleted");
+      setTimeout(() => window.location.href = "/", 1000);
     } catch (e: any) { toast.error(e.message); }
     setConfirmAction(null);
   };
