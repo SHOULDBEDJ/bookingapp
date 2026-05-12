@@ -284,7 +284,7 @@ export function BookingForm({ open, onClose, onSaved, editing }: { open: boolean
             <AudioNoteRecorder 
               items={audios} 
               setItems={setAudios} 
-              existingItems={existingAudios.map(a => ({ id: a.id, storage_path: a.storage_path, transcript: a.transcript, blob: null }))}
+              existingItems={existingAudios.map(a => ({ id: a.id, storage_path: a.storage_path, transcript: a.transcript, recorded_at: a.created_at, blob: null }))}
               onRemoveExisting={removeExistingAudio}
             />
           </div>

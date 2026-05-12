@@ -28,9 +28,21 @@ function BookingPage() {
 
   const onDelete = async () => {
     if (!delTarget) return;
-    await supabase.from("bookings").delete().eq("id", delTarget.id);
-    toast.success("Deleted");
-    setDelTarget(null); load();
+    try {
+      const customerId = delTarget.customers?.id;
+      // Delete booking first
+      await supabase.from("bookings").delete().eq("id", delTarget.id);
+      
+      // If there's a customer, delete them too
+      if (customerId) {
+        await supabase.from("customers").delete().eq("id", customerId);
+      }
+      
+      toast.success("Booking and customer deleted permanently");
+      setDelTarget(null); load();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to delete");
+    }
   };
 
   return (
@@ -65,8 +77,21 @@ function BookingPage() {
       <BookingDetail booking={detail} open={!!detail} onClose={() => setDetail(null)} />
       <AlertDialog open={!!delTarget} onOpenChange={(o) => !o && setDelTarget(null)}>
         <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>Delete this booking?</AlertDialogTitle><AlertDialogDescription>This permanently removes the booking, photos, and audio notes.</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this booking and customer?</AlertDialogTitle>
+            <AlertDialogDescription>
+              the booking and the customer will be deleted from booking and customer history module
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={onDelete} 
+              className="bg-destructive text-destructive-foreground font-bold"
+            >
+              yes I want to delete the customer and booking
+            </AlertDialogAction>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>

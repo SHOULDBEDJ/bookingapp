@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Eye, Pencil, Trash2, Calendar as CalendarIcon, X } from "lucide-react";
 import { BookingDetail } from "@/components/app/BookingDetail";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -170,7 +170,10 @@ function Page() {
       <BookingDetail booking={detail} open={!!detail} onClose={() => setDetail(null)} />
       <Dialog open={!!edit} onOpenChange={(o) => !o && setEdit(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Edit phone</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Edit phone</DialogTitle>
+            <DialogDescription>Update the customer's phone number</DialogDescription>
+          </DialogHeader>
           {edit && (
             <div className="space-y-3">
               <div><Label>Phone</Label><Input type="tel" value={edit.phone || ""} onChange={(e) => setEdit({ ...edit, phone: e.target.value })} /></div>
@@ -181,8 +184,21 @@ function Page() {
       </Dialog>
       <AlertDialog open={!!del} onOpenChange={(o) => !o && setDel(null)}>
         <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>Delete customer?</AlertDialogTitle></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={doDelete} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this customer and all history?</AlertDialogTitle>
+            <AlertDialogDescription>
+              the booking and the customer will be deleted from booking and customer history module
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={doDelete} 
+              className="bg-destructive text-destructive-foreground font-bold"
+            >
+              yes I want to delete the customer and booking
+            </AlertDialogAction>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
@@ -193,7 +209,9 @@ function Page() {
               <Clock className="w-5 h-5" />
               Booking History: {historyCustomer?.name || historyCustomer?.phone}
             </DialogTitle>
-            <p className="text-sm opacity-90">{historyCustomer?.bookings?.length || 0} total bookings recorded</p>
+            <DialogDescription className="text-sm opacity-90 text-primary-foreground">
+              {historyCustomer?.bookings?.length || 0} total bookings recorded
+            </DialogDescription>
           </DialogHeader>
           
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-muted/30">

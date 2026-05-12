@@ -5,8 +5,8 @@ import { PageHeader } from "@/components/app/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Eye, Pencil, Trash2, Settings as SettingsIcon } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription } from "@/components/ui/alert-dialog";
 import { publicUrl } from "@/lib/storage";
 import { fmtDateTime } from "@/lib/format";
 import { toast } from "sonner";
@@ -73,13 +73,21 @@ function ExpensePage() {
 
       {/* Detail */}
       <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
-        <DialogContent><DialogHeader><DialogTitle>Expense detail</DialogTitle></DialogHeader>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Expense detail</DialogTitle>
+            <DialogDescription>Detailed view of this expense record</DialogDescription>
+          </DialogHeader>
           {detail && <ExpenseDetail expense={detail} />}
         </DialogContent>
       </Dialog>
 
       <AlertDialog open={!!del} onOpenChange={(o) => !o && setDel(null)}>
-        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete expense?</AlertDialogTitle></AlertDialogHeader>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete expense?</AlertDialogTitle>
+            <AlertDialogDescription>This action cannot be undone. This will permanently delete the expense record.</AlertDialogDescription>
+          </AlertDialogHeader>
           <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={doDelete} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -131,7 +139,10 @@ function ExpenseTypesManager({ open, onClose }: { open: boolean; onClose: () => 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Expense Types</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Expense Types</DialogTitle>
+          <DialogDescription>Add or remove expense categories</DialogDescription>
+        </DialogHeader>
         <div className="flex gap-2"><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="New type name..." /><Button onClick={add} className="bg-gradient-primary text-primary-foreground">Add</Button></div>
         <div className="space-y-2 max-h-80 overflow-y-auto">{items.map((t) => (
           <div key={t.id} className="flex gap-2 items-center"><Input defaultValue={t.name} onBlur={(e) => e.target.value !== t.name && update(t.id, e.target.value)} /><Button size="sm" variant="ghost" onClick={() => del(t.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button></div>

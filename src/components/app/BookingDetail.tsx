@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { publicUrl } from "@/lib/storage";
 import { fmtDateTime } from "@/lib/format";
@@ -27,7 +27,10 @@ export function BookingDetail({ booking, open, onClose }: { booking: any; open: 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Booking Details</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Booking Details</DialogTitle>
+          <DialogDescription>Full details of the customer booking</DialogDescription>
+        </DialogHeader>
         <div className="space-y-3">
           <div className="rounded-xl p-4 bg-gradient-card border border-border shadow-soft">
             <div className="flex items-start justify-between gap-3">

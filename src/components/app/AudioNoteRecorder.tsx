@@ -1,11 +1,18 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Mic, Square, Trash2, Plus, Volume2 } from "lucide-react";
+import { Mic, Square, Trash2, Plus, Volume2, Clock } from "lucide-react";
 import { useAudioRecorder } from "@/hooks/use-audio-recorder";
 import { publicUrl } from "@/lib/storage";
 import { cn } from "@/lib/utils";
+import { fmtDateTime } from "@/lib/format";
 
-export type DraftAudio = { id: string; blob: Blob | null; transcript: string; storage_path?: string };
+export type DraftAudio = { 
+  id: string; 
+  blob: Blob | null; 
+  transcript: string; 
+  storage_path?: string;
+  recorded_at?: string;
+};
 
 interface AudioNoteRecorderProps {
   items: DraftAudio[];
@@ -21,7 +28,11 @@ export function AudioNoteRecorder({ items, setItems, existingItems = [], onRemov
   useEffect(() => {
     if (rec.blob && activeIdx !== null) {
       const next = items.slice();
-      next[activeIdx] = { ...next[activeIdx], blob: rec.blob };
+      next[activeIdx] = { 
+        ...next[activeIdx], 
+        blob: rec.blob,
+        recorded_at: new Date().toISOString()
+      };
       setItems(next);
       rec.reset();
       setActiveIdx(null);
@@ -51,7 +62,15 @@ export function AudioNoteRecorder({ items, setItems, existingItems = [], onRemov
         {existingItems.map((it) => (
           <div key={it.id} className="rounded-xl border border-primary/20 p-3 bg-primary/5 shadow-sm">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold text-primary px-1.5 py-0.5 bg-primary/10 rounded-full uppercase">Saved Note</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-primary px-1.5 py-0.5 bg-primary/10 rounded-full uppercase">Saved Note</span>
+                {it.recorded_at && (
+                  <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {fmtDateTime(it.recorded_at)}
+                  </span>
+                )}
+              </div>
               {onRemoveExisting && (
                 <Button type="button" size="sm" variant="ghost" onClick={() => onRemoveExisting(it.id)} className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive">
                   <Trash2 className="w-3 h-3" />
@@ -69,7 +88,15 @@ export function AudioNoteRecorder({ items, setItems, existingItems = [], onRemov
         {items.map((it, idx) => (
           <div key={it.id} className="rounded-xl border border-border p-3 bg-gradient-card shadow-sm transition-all hover:border-primary/30">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold text-emerald-600 px-1.5 py-0.5 bg-emerald-50 rounded-full uppercase">New Note</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-emerald-600 px-1.5 py-0.5 bg-emerald-50 rounded-full uppercase">New Note</span>
+                {it.recorded_at && (
+                  <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {fmtDateTime(it.recorded_at)}
+                  </span>
+                )}
+              </div>
               <Button type="button" size="sm" variant="ghost" onClick={() => remove(idx)} className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive">
                 <Trash2 className="w-3 h-3" />
               </Button>

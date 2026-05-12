@@ -10,8 +10,8 @@ import { AudioNoteRecorder, type DraftAudio } from "./AudioNoteRecorder";
 import { uploadFile } from "@/lib/storage";
 import { toLocalInput, fmtDateTime } from "@/lib/format";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Wallet, CreditCard, Banknote } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Wallet, CreditCard, Banknote, Contact, UserSearch } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ExpenseFormProps {
@@ -33,7 +33,10 @@ export function ExpenseForm({ open, onClose, onSaved, editing }: ExpenseFormProp
   const [notes, setNotes] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [audios, setAudios] = useState<DraftAudio[]>([]);
+  const [existingPhotos, setExistingPhotos] = useState<any[]>([]);
+  const [existingAudios, setExistingAudios] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
+  const [filteringContact, setFilteringContact] = useState<{ name: string; phone: string } | null>(null);
 
   const loadDependencies = async () => {
     const [t, b] = await Promise.all([
@@ -65,6 +68,17 @@ export function ExpenseForm({ open, onClose, onSaved, editing }: ExpenseFormProp
           setPaymentMethod("CASH");
           setNotes(existingNotes);
         }
+
+        // Fetch existing media
+        const loadMedia = async () => {
+          const [p, a] = await Promise.all([
+            supabase.from("expense_photos").select("*").eq("expense_id", editing.id),
+            supabase.from("audio_notes").select("*").eq("parent_type", "expense").eq("parent_id", editing.id)
+          ]);
+          setExistingPhotos(p.data || []);
+          setExistingAudios(a.data || []);
+        };
+        loadMedia();
       } else {
         setDate(toLocalInput());
         setTypeId("");
@@ -74,9 +88,57 @@ export function ExpenseForm({ open, onClose, onSaved, editing }: ExpenseFormProp
         setNotes("");
         setFiles([]);
         setAudios([]);
+        setExistingPhotos([]);
+        setExistingAudios([]);
+        setFilteringContact(null);
       }
     }
   }, [editing, open]);
+
+  const pickDeviceContact = async () => {
+    try {
+      // @ts-ignore
+      if (!navigator.contacts || !navigator.contacts.select) {
+        toast.error("Contact selection is only available on supported mobile browsers (Chrome/Safari on mobile)");
+        return;
+      }
+      // @ts-ignore
+      const props = ['name', 'tel'];
+      // @ts-ignore
+      const contacts = await navigator.contacts.select(props, { multiple: false });
+      if (contacts && contacts.length > 0) {
+        const contact = contacts[0];
+        const rawPhone = contact.tel?.[0] || "";
+        const cleanPhone = rawPhone.replace(/\D/g, '').slice(-10);
+        const name = contact.name?.[0] || "Unknown";
+        
+        setFilteringContact({ name, phone: cleanPhone });
+        toast.info(`Filtering bookings for ${name}`);
+      }
+    } catch (e) {
+      console.error("Contact picker error", e);
+      toast.error("Could not access contacts");
+    }
+  };
+
+  const filteredBookings = filteringContact 
+    ? bookings.filter(b => b.customers?.phone?.includes(filteringContact.phone))
+    : bookings;
+
+  const removeExistingPhoto = async (path: string) => {
+    const photo = existingPhotos.find(p => p.storage_path === path);
+    if (photo) {
+      await supabase.from("expense_photos").delete().eq("id", photo.id);
+      setExistingPhotos(existingPhotos.filter(p => p.id !== photo.id));
+      toast.success("Photo removed");
+    }
+  };
+
+  const removeExistingAudio = async (id: string) => {
+    await supabase.from("audio_notes").delete().eq("id", id);
+    setExistingAudios(existingAudios.filter(a => a.id !== id));
+    toast.success("Voice note removed");
+  };
 
   const save = async () => {
     if (!amount) { toast.error("Please enter an amount"); return; }
@@ -135,6 +197,7 @@ export function ExpenseForm({ open, onClose, onSaved, editing }: ExpenseFormProp
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{editing ? "Edit" : "New"} Expense</DialogTitle>
+          <DialogDescription>Record or update business expense details</DialogDescription>
         </DialogHeader>
         
         <div className="space-y-6 py-4">
@@ -222,20 +285,42 @@ export function ExpenseForm({ open, onClose, onSaved, editing }: ExpenseFormProp
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Linked Booking (Optional)</Label>
+              <div className="flex items-center justify-between">
+                <Label>Linked Booking (Optional)</Label>
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={pickDeviceContact}
+                  className="h-6 px-2 text-primary hover:bg-primary/5 gap-1 font-bold text-[10px]"
+                >
+                  <Contact className="w-3 h-3" /> Select Contact
+                </Button>
+              </div>
               <Select value={bookingId} onValueChange={setBookingId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="None" />
+                  <SelectValue placeholder={filteringContact ? `Bookings for ${filteringContact.name}` : "None"} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">None</SelectItem>
-                  {bookings.map((b) => (
+                  {filteredBookings.map((b) => (
                     <SelectItem key={b.id} value={b.id}>
                       {b.customers?.name} — {fmtDateTime(b.booking_date)}
                     </SelectItem>
                   ))}
+                  {filteredBookings.length === 0 && (
+                    <div className="p-2 text-xs text-muted-foreground text-center">No bookings found for this contact</div>
+                  )}
                 </SelectContent>
               </Select>
+              {filteringContact && (
+                <div className="flex items-center justify-between mt-1">
+                  <p className="text-[10px] text-primary flex items-center gap-1">
+                    <UserSearch className="w-3 h-3" /> Filtered by: {filteringContact.name}
+                  </p>
+                  <button onClick={() => setFilteringContact(null)} className="text-[10px] text-muted-foreground hover:text-foreground">Clear filter</button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -253,10 +338,21 @@ export function ExpenseForm({ open, onClose, onSaved, editing }: ExpenseFormProp
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Photos / Bills</Label>
-              <PhotoUploader files={files} setFiles={setFiles} />
+              <PhotoUploader 
+                files={files} 
+                setFiles={setFiles} 
+                existingFiles={existingPhotos.map(p => p.storage_path)} 
+                onRemoveExisting={removeExistingPhoto}
+                bucket="expense-photos"
+              />
             </div>
             
-            <AudioNoteRecorder items={audios} setItems={setAudios} />
+            <AudioNoteRecorder 
+              items={audios} 
+              setItems={setAudios} 
+              existingItems={existingAudios.map(a => ({ id: a.id, storage_path: a.storage_path, transcript: a.transcript, recorded_at: a.created_at, blob: null }))}
+              onRemoveExisting={removeExistingAudio}
+            />
           </div>
 
           <Button 
