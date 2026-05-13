@@ -291,56 +291,71 @@ export function ExpenseForm({ open, onClose, onSaved, editing }: ExpenseFormProp
               </div>
             </div>
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Linked Booking (Optional)</Label>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={pickDeviceContact}
-                  className="h-8 px-3 text-primary border-primary/20 hover:bg-primary/5 gap-2 font-bold rounded-full transition-all active:scale-95 shadow-sm"
-                >
-                  <Contact className="w-4 h-4" />
-                  <span className="text-xs">Select Contact</span>
-                </Button>
-              </div>
-              <div className="relative group">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                <Input 
-                  placeholder="Search booking by phone..." 
-                  className="pl-9 h-10 bg-muted/30 border-muted focus:bg-card transition-all"
-                  onChange={(e) => {
-                    const val = e.target.value.trim();
-                    if (val.length >= 4) {
-                      setFilteringContact({ name: "Search result", phone: val });
-                    } else if (val === "") {
-                      setFilteringContact(null);
-                    }
-                  }}
-                />
-              </div>
-              <Select value={bookingId} onValueChange={setBookingId}>
-                <SelectTrigger>
-                  <SelectValue placeholder={filteringContact ? `Bookings for ${filteringContact.name}` : "None"} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {filteredBookings.map((b) => (
-                    <SelectItem key={b.id} value={b.id}>
-                      {b.customers?.name} — {fmtDateTime(b.booking_date)}
-                    </SelectItem>
-                  ))}
-                  {filteredBookings.length === 0 && (
-                    <div className="p-2 text-xs text-muted-foreground text-center">No bookings found for this contact</div>
-                  )}
-                </SelectContent>
-              </Select>
-              {filteringContact && (
-                <div className="flex items-center justify-between mt-1">
-                  <p className="text-[10px] text-primary flex items-center gap-1">
-                    <UserSearch className="w-3 h-3" /> Filtered by: {filteringContact.name}
-                  </p>
-                  <button onClick={() => setFilteringContact(null)} className="text-[10px] text-muted-foreground hover:text-foreground">Clear filter</button>
+              <Label className="font-bold">Contact / Customer (Optional)</Label>
+              {!filteringContact ? (
+                <div className="space-y-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={pickDeviceContact}
+                    className="w-full h-11 border-dashed border-2 hover:border-primary hover:bg-primary/5 gap-2 font-bold transition-all active:scale-95"
+                  >
+                    <Contact className="w-5 h-5 text-primary" />
+                    <span>Select Contact from Phone</span>
+                  </Button>
+                  
+                  <div className="relative group">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                    <Input 
+                      placeholder="Or search by phone number..." 
+                      className="pl-9 h-11 bg-muted/30 border-muted focus:bg-card transition-all"
+                      onChange={(e) => {
+                        const val = e.target.value.trim();
+                        if (val.length >= 4) {
+                          setFilteringContact({ name: "Searching...", phone: val });
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between p-3 rounded-xl bg-primary/5 border border-primary/20 animate-in fade-in slide-in-from-top-1">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                      <UserSearch className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm">{filteringContact.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{filteringContact.phone}</p>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => { setFilteringContact(null); setBookingId(""); }}
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+              
+              {/* Hidden Select to maintain functionality with existing filtered logic */}
+              {filteringContact && filteredBookings.length > 0 && !bookingId && (
+                <div className="mt-2 animate-in fade-in">
+                  <Label className="text-[10px] uppercase font-bold text-muted-foreground mb-1 block px-1">Select specific booking</Label>
+                  <Select value={bookingId} onValueChange={setBookingId}>
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue placeholder="Choose a booking..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredBookings.map((b) => (
+                        <SelectItem key={b.id} value={b.id}>
+                          {fmtDateTime(b.booking_date)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
             </div>
