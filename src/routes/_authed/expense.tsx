@@ -12,6 +12,7 @@ import { fmtDateTime } from "@/lib/format";
 import { toast } from "sonner";
 import { ExpenseForm } from "@/components/app/ExpenseForm";
 import { Input } from "@/components/ui/input";
+import { PhotoViewer } from "@/components/app/PhotoViewer";
 
 export const Route = createFileRoute("/_authed/expense")({ component: ExpensePage });
 
@@ -24,6 +25,7 @@ function ExpensePage() {
   const [editing, setEditing] = useState<any>(null);
   const [del, setDel] = useState<any>(null);
   const [detail, setDetail] = useState<any>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<{ url: string; title: string } | null>(null);
 
   const load = async () => {
     const [e, t, b] = await Promise.all([
@@ -78,9 +80,16 @@ function ExpensePage() {
             <DialogTitle>Expense detail</DialogTitle>
             <DialogDescription>Detailed view of this expense record</DialogDescription>
           </DialogHeader>
-          {detail && <ExpenseDetail expense={detail} />}
+          {detail && <ExpenseDetail expense={detail} onPhotoClick={(url, title) => setSelectedPhoto({ url, title })} />}
         </DialogContent>
       </Dialog>
+
+      <PhotoViewer 
+        url={selectedPhoto?.url || ""} 
+        open={!!selectedPhoto} 
+        onClose={() => setSelectedPhoto(null)} 
+        title={selectedPhoto?.title}
+      />
 
       <AlertDialog open={!!del} onOpenChange={(o) => !o && setDel(null)}>
         <AlertDialogContent>
@@ -97,9 +106,10 @@ function ExpensePage() {
   );
 }
 
-function ExpenseDetail({ expense }: { expense: any }) {
+function ExpenseDetail({ expense, onPhotoClick }: { expense: any; onPhotoClick: (url: string, title: string) => void }) {
   const [photos, setPhotos] = useState<any[]>([]);
   const [audios, setAudios] = useState<any[]>([]);
+
   useEffect(() => { (async () => {
     const [p, a] = await Promise.all([
       supabase.from("expense_photos").select("*").eq("expense_id", expense.id),
@@ -113,7 +123,19 @@ function ExpenseDetail({ expense }: { expense: any }) {
         <p className="text-sm">Amount: <strong>₹{expense.amount}</strong></p>
         <p className="text-sm">Date: {fmtDateTime(expense.expense_date)}</p>
       </div>
-      {photos.length > 0 && <div className="grid grid-cols-3 gap-2">{photos.map((p) => <img key={p.id} src={publicUrl("expense-photos", p.storage_path)} className="aspect-square object-cover rounded-lg border" alt="" />)}</div>}
+      {photos.length > 0 && (
+        <div className="grid grid-cols-3 gap-2">
+          {photos.map((p) => (
+            <img 
+              key={p.id} 
+              src={publicUrl("expense-photos", p.storage_path)} 
+              className="aspect-square object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity" 
+              alt="" 
+              onClick={() => onPhotoClick(publicUrl("expense-photos", p.storage_path), `${expense.expense_types?.name || "Expense"} - ₹${expense.amount}`)}
+            />
+          ))}
+        </div>
+      )}
       {audios.map((a) => <div key={a.id} className="rounded-lg p-2 border bg-muted/20">{a.storage_path && <audio controls src={publicUrl("audio", a.storage_path)} className="w-full h-8 mb-1" />}{a.transcript && <p className="text-sm">{a.transcript}</p>}</div>)}
     </div>
   );

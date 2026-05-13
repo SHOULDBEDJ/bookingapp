@@ -11,7 +11,7 @@ import { uploadFile } from "@/lib/storage";
 import { toLocalInput, fmtDateTime } from "@/lib/format";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Wallet, CreditCard, Banknote, Contact, UserSearch } from "lucide-react";
+import { Wallet, CreditCard, Banknote, Contact, UserSearch, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ExpenseFormProps {
@@ -117,7 +117,8 @@ export function ExpenseForm({ open, onClose, onSaved, editing }: ExpenseFormProp
       }
     } catch (e) {
       console.error("Contact picker error", e);
-      toast.error("Could not access contacts");
+      // Fallback is already handled by the searchable bookings list, but we could add more here
+      toast.error("Could not access phone contacts. Please use the search/dropdown below.");
     }
   };
 
@@ -272,7 +273,12 @@ export function ExpenseForm({ open, onClose, onSaved, editing }: ExpenseFormProp
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Amount (₹)</Label>
+              <div className="flex items-center justify-between">
+                <Label className="font-bold">Amount (₹)</Label>
+                {paymentMethod === "PHONE PE" && (
+                  <span className="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded-full animate-pulse">Online Payment</span>
+                )}
+              </div>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">₹</span>
                 <Input 
@@ -289,13 +295,29 @@ export function ExpenseForm({ open, onClose, onSaved, editing }: ExpenseFormProp
                 <Label>Linked Booking (Optional)</Label>
                 <Button 
                   type="button" 
-                  variant="ghost" 
+                  variant="outline" 
                   size="sm" 
                   onClick={pickDeviceContact}
-                  className="h-6 px-2 text-primary hover:bg-primary/5 gap-1 font-bold text-[10px]"
+                  className="h-8 px-3 text-primary border-primary/20 hover:bg-primary/5 gap-2 font-bold rounded-full transition-all active:scale-95 shadow-sm"
                 >
-                  <Contact className="w-3 h-3" /> Select Contact
+                  <Contact className="w-4 h-4" />
+                  <span className="text-xs">Select Contact</span>
                 </Button>
+              </div>
+              <div className="relative group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <Input 
+                  placeholder="Search booking by phone..." 
+                  className="pl-9 h-10 bg-muted/30 border-muted focus:bg-card transition-all"
+                  onChange={(e) => {
+                    const val = e.target.value.trim();
+                    if (val.length >= 4) {
+                      setFilteringContact({ name: "Search result", phone: val });
+                    } else if (val === "") {
+                      setFilteringContact(null);
+                    }
+                  }}
+                />
               </div>
               <Select value={bookingId} onValueChange={setBookingId}>
                 <SelectTrigger>
