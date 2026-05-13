@@ -11,7 +11,7 @@ import { uploadFile } from "@/lib/storage";
 import { toLocalInput, fmtDateTime } from "@/lib/format";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Wallet, CreditCard, Banknote, Contact, UserSearch, Search } from "lucide-react";
+import { Wallet, CreditCard, Banknote, Contact, UserSearch, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ExpenseFormProps {
