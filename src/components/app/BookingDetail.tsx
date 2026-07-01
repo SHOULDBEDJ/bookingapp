@@ -91,7 +91,7 @@ export function BookingDetail({ booking, open, onClose }: { booking: any; open: 
       toast.success("Location request sent!");
       
       const shareUrl = `${window.location.origin}/share-location/${shareToken}`;
-      const message = `Hello, please share your location for your booking using this link: ${shareUrl}`;
+      const message = `Hello, please confirm your booking using this link: ${shareUrl}`;
       let phoneStr = booking.customers?.phone?.replace(/\D/g, '') || '';
       if (phoneStr.length === 10) {
         phoneStr = `91${phoneStr}`;
@@ -194,7 +194,7 @@ export function BookingDetail({ booking, open, onClose }: { booking: any; open: 
                   </Button>
                   <Button variant="outline" size="sm" className="flex-1" onClick={() => {
                     const shareUrl = `${window.location.origin}/share-location/${locationSession.token}`;
-                    const message = `Hello, please share your location for your booking using this link: ${shareUrl}`;
+                    const message = `Hello, please confirm your booking using this link: ${shareUrl}`;
                     let phoneStr = booking.customers?.phone?.replace(/\D/g, '') || '';
                     if (phoneStr.length === 10) {
                       phoneStr = `91${phoneStr}`;
