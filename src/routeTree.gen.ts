@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ShareLocationTokenRouteImport } from './routes/share-location.$token'
 import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
 import { Route as AuthedGalleryRouteImport } from './routes/_authed/gallery'
 import { Route as AuthedExpenseRouteImport } from './routes/_authed/expense'
@@ -31,6 +32,11 @@ const AuthedRoute = AuthedRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShareLocationTokenRoute = ShareLocationTokenRouteImport.update({
+  id: '/share-location/$token',
+  path: '/share-location/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthedSettingsRoute = AuthedSettingsRouteImport.update({
@@ -73,6 +79,7 @@ export interface FileRoutesByFullPath {
   '/expense': typeof AuthedExpenseRoute
   '/gallery': typeof AuthedGalleryRoute
   '/settings': typeof AuthedSettingsRoute
+  '/share-location/$token': typeof ShareLocationTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -83,6 +90,7 @@ export interface FileRoutesByTo {
   '/expense': typeof AuthedExpenseRoute
   '/gallery': typeof AuthedGalleryRoute
   '/settings': typeof AuthedSettingsRoute
+  '/share-location/$token': typeof ShareLocationTokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -95,6 +103,7 @@ export interface FileRoutesById {
   '/_authed/expense': typeof AuthedExpenseRoute
   '/_authed/gallery': typeof AuthedGalleryRoute
   '/_authed/settings': typeof AuthedSettingsRoute
+  '/share-location/$token': typeof ShareLocationTokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -107,6 +116,7 @@ export interface FileRouteTypes {
     | '/expense'
     | '/gallery'
     | '/settings'
+    | '/share-location/$token'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
     | '/expense'
     | '/gallery'
     | '/settings'
+    | '/share-location/$token'
   id:
     | '__root__'
     | '/'
@@ -128,12 +139,14 @@ export interface FileRouteTypes {
     | '/_authed/expense'
     | '/_authed/gallery'
     | '/_authed/settings'
+    | '/share-location/$token'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthedRoute: typeof AuthedRouteWithChildren
   LoginRoute: typeof LoginRoute
+  ShareLocationTokenRoute: typeof ShareLocationTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -157,6 +170,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/share-location/$token': {
+      id: '/share-location/$token'
+      path: '/share-location/$token'
+      fullPath: '/share-location/$token'
+      preLoaderRoute: typeof ShareLocationTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authed/settings': {
@@ -229,6 +249,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthedRoute: AuthedRouteWithChildren,
   LoginRoute: LoginRoute,
+  ShareLocationTokenRoute: ShareLocationTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
